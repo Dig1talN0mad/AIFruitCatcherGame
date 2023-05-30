@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Fruit Catcher</title>
+    <style>
+        /* CSS */
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .basket {
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #ffa500;
+            /* Change the color as desired */
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 10px;
+        }
+
+        .falling-fruits {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 0;
+        }
+
+        .fruit {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+        }
+
+        .apple {
+            background-color: red;
+        }
+
+        .orange {
+            background-color: orange;
+        }
+
+        .banana {
+            background-color: yellow;
+            clip-path: polygon(50% 0, 88% 35%, 88% 65%, 50% 100%, 12% 65%, 12% 35%);
+        }
+
+        .touch-controls {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .touch-controls div {
+            width: 50%;
+            height: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .touch-left {
+            border-top-left-radius: 25px;
+        }
+
+        .touch-right {
+            border-top-right-radius: 25px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="game-container">
+        <h1>Fruit Catcher</h1>
+        <div class="scoreboard">Score: <span class="score">0</span></div>
+        <div class="touch-controls">
+            <div class="touch-left"></div>
+            <div class="touch-right"></div>
+        </div>
+        <div class="falling-fruits"></div>
+        <div class="basket"></div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const fruitTypes = ["apple", "orange", "banana"];
+            const fallingFruitsContainer = document.querySelector(".falling-fruits");
+            const basket = document.querySelector(".basket");
+            const gameContainer = document.querySelector(".game-container");
+            const scoreDisplay = document.querySelector(".score");
+
+            // Variables for basket movement
+            let basketPosition = window.innerWidth / 2;
+            let basketSpeed = calculateBasketSpeed(); // Adjust the initial basket movement speed as desired
+
+            // Score tracking
+            let score = 0;
+
+            // Calculate basket speed based on screen size
+            function calculateBasketSpeed() {
+                const screenWidth = window.innerWidth;
+                const baseSpeed = 1; // Adjust the base basket movement speed as desired
+
+                // Adjust the factors below to determine the speed based on screen size
+                const speedFactor = 0.02; // Adjust the speed factor as desired
+                const minSpeed = 2; // Adjust the minimum speed as desired
+
+                const calculatedSpeed = baseSpeed + screenWidth * speedFactor;
+                return Math.max(calculatedSpeed, minSpeed);
+            }
+
+            // Keyboard controls
+            document.addEventListener("keydown", function(event) {
+                if (event.key === "a" || event.key === "A") {
+                    moveBasket("left");
+                } else if (event.key === "d" || event.key === "D") {
+                    moveBasket("right");
+                }
+            });
+
+            // Touch controls
+            let touchStartX = null;
+            gameContainer.addEventListener("touchstart", function(event) {
+                touchStartX = event.touches[0].clientX;
+            });
+
+            gameContainer.addEventListener("touchend", function(event) {
+                const touchEndX = event.changedTouches[0].clientX;
+                const touchDiff = touchEndX - touchStartX;
+
+                if (touchDiff > 0) {
+                    moveBasket("right");
+                } else if (touchDiff < 0) {
+                    moveBasket("left");
+                }
+            });
+
+            function moveBasket(direction) {
+                const containerWidth = gameContainer.clientWidth;
+                const basketWidth = basket.clientWidth;
+
+                if (direction === "left") {
+                    basketPosition = Math.max(basketPosition - basketSpeed, 0);
+                } else if (direction === "right") {
+                    basketPosition = Math.min(basketPosition + basketSpeed, containerWidth - basketWidth);
+                }
+
+                basket.style.left = basketPosition + "px";
+            }
+
+            function checkCollision() {
+                const fruits = fallingFruitsContainer.querySelectorAll(".fruit");
+
+                fruits.forEach(function(fruit) {
+                    if (isColliding(fruit, basket)) {
+                        const fruitType = fruit.classList[1];
+                        const fruitScore = calculateFruitScore(fruitType);
+
+                        score += fruitScore;
+                        scoreDisplay.textContent = score;
+
+                        fruit.remove();
+                    }
+                });
+            }
+
+            // Calculate score for each fruit type
+            function calculateFruitScore(fruitType) {
+                switch (fruitType) {
+                    case "apple":
+                        return 10;
+                    case "orange":
+                        return 20;
+                    case "banana":
+                        return 30;
+                    default:
+                        return 0;
+                }
+            }
+
+            // Check if two elements are colliding
+            function isColliding(element1, element2) {
+                const rect1 = element1.getBoundingClientRect();
+                const rect2 = element2.getBoundingClientRect();
+
+                return !(
+                    rect1.right < rect2.left ||
+                    rect1.left > rect2.right ||
+                    rect1.bottom < rect2.top ||
+                    rect1.top > rect2.bottom
+                );
+            }
+            // Update basket speed when the window is resized
+            window.addEventListener("resize", function() {
+                basketSpeed = calculateBasketSpeed();
+            });
+
+            // Create and fall fruits
+            function createFruit() {
+                const fruitType = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
+                const fruit = document.createElement("div");
+                fruit.classList.add("fruit", fruitType);
+                fallingFruitsContainer.appendChild(fruit);
+
+                const startPosition = Math.random() * (gameContainer.clientWidth - fruit.clientWidth);
+                fruit.style.left = startPosition + "px";
+
+                const fallInterval = setInterval(function() {
+                    const bottomPosition = gameContainer.clientHeight - fruit.clientHeight;
+                    const currentTop = parseInt(fruit.style.top) || 0;
+                    const nextTop = currentTop + 10; // Adjust the falling speed as desired
+
+                    if (nextTop >= bottomPosition) {
+                        clearInterval(fallInterval);
+                        fruit.remove();
+                    } else {
+                        fruit.style.top = nextTop + "px";
+                        checkCollision();
+                    }
+                }, 50); // Adjust the interval duration as desired
+            }
+
+            setInterval(createFruit, 1500); // Adjust the spawn interval duration as desired
+        });
+
+    </script>
+
+    <!-- Add the rest of your game elements and scripts here -->
+</body>
+
+</html>
