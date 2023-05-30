@@ -10,8 +10,8 @@ Display a basket at the bottom center of the screen using HTML and CSS. (COMPLET
 Generate random fruits (e.g., apples, oranges, bananas) at the top of the screen and let them fall towards the basket. (COMPLETED)
 Allow players to move the basket left or right using arrow keys or touch controls (for mobile devices). (COMPLETED) [UNSURE IF MOBILE FEATURE IS WORKING]
 Assign a point value to each fruit caught and update the score accordingly. (COMPLETED)
-Implement a timer to limit the gameplay duration (e.g., 60 seconds).
-Display the current score and time remaining on the screen.
+Implement a timer to limit the gameplay duration (e.g., 60 seconds). (COMPLETED)*
+Display the current score and time remaining on the screen. (COMPLETED)*
 Add sound effects for catching fruits and missing rotten fruits to enhance the gaming experience.
 Include a game over condition: when the time runs out, display the final score and provide an option to restart the game.
 Optional Enhancements:
@@ -21,3 +21,5 @@ Implement power-ups or bonus items that provide extra points, increase the baske
 Introduce a combo system where consecutive successful catches increase the score multiplier.
 Include a leaderboard to track and display the highest scores achieved by players.
 Add visually appealing graphics and animations to make the game more engaging.
+
+* = Timer counting to a negative number currently. Score can be added after the game is over.
