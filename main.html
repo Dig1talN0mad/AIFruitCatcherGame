@@ -2,35 +2,23 @@
 <html>
 
 <head>
-    <title>Fruit Catcher</title>
     <style>
-        /* CSS */
+        /* CSS styles for the game elements */
         .game-container {
             position: relative;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
+            width: 100%;
+            height: 400px;
+            background-color: #f0f0f0;
         }
 
         .basket {
-            width: 0;
-            height: 0;
-            border-left: 20px solid transparent;
-            border-right: 20px solid transparent;
-            border-top: 40px solid #ffa500;
-            /* Change the color as desired */
             position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
             bottom: 10px;
-        }
-
-        .falling-fruits {
-            position: absolute;
-            top: 0;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 0;
+            width: 60px;
+            height: 40px;
+            background-color: #00aaff;
         }
 
         .fruit {
@@ -53,26 +41,29 @@
             clip-path: polygon(50% 0, 88% 35%, 88% 65%, 50% 100%, 12% 65%, 12% 35%);
         }
 
-        .touch-controls {
+        .scoreboard {
             position: absolute;
-            bottom: 10px;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
         }
 
-        .touch-controls div {
-            width: 50%;
-            height: 50px;
-            background-color: rgba(0, 0, 0, 0.5);
+        .start-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 36px;
         }
 
-        .touch-left {
-            border-top-left-radius: 25px;
-        }
-
-        .touch-right {
-            border-top-right-radius: 25px;
+        .game-over-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 48px;
         }
 
     </style>
@@ -80,15 +71,17 @@
 
 <body>
     <div class="game-container">
-        <h1>Fruit Catcher</h1>
-        <div class="scoreboard">Score: <span class="score">0</span></div>
-        <div class="touch-controls">
-            <div class="touch-left"></div>
-            <div class="touch-right"></div>
-        </div>
-        <div class="falling-fruits"></div>
         <div class="basket"></div>
+        <div class="falling-fruits"></div>
+        <div class="scoreboard">Score: <span class="score">0</span></div>
+        <div class="start-screen">
+            <h1>Click to Start!</h1>
+        </div>
+        <div class="game-over-screen" style="display: none;">
+            <h1 id="game-over-title">GG! Score is 0</h1>
+        </div>
     </div>
+
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const fruitTypes = ["apple", "orange", "banana"];
@@ -96,17 +89,26 @@
             const basket = document.querySelector(".basket");
             const gameContainer = document.querySelector(".game-container");
             const scoreDisplay = document.querySelector(".score");
+            const startScreen = document.querySelector(".start-screen");
+            const gameOverScreen = document.querySelector(".game-over-screen");
+            const gameOverTitle = document.getElementById("game-over-title");
+
+            let fruitSpawnInterval;
 
             // Variables for basket movement
-            let basketPosition = window.innerWidth / 2;
+            let basketPosition = gameContainer.clientWidth / 2;
             let basketSpeed = calculateBasketSpeed(); // Adjust the initial basket movement speed as desired
 
             // Score tracking
             let score = 0;
 
+            // Game timer
+            let timer = null;
+            let secondsLeft = 60;
+
             // Calculate basket speed based on screen size
             function calculateBasketSpeed() {
-                const screenWidth = window.innerWidth;
+                const screenWidth = gameContainer.clientWidth;
                 const baseSpeed = 1; // Adjust the base basket movement speed as desired
 
                 // Adjust the factors below to determine the speed based on screen size
@@ -115,6 +117,53 @@
 
                 const calculatedSpeed = baseSpeed + screenWidth * speedFactor;
                 return Math.max(calculatedSpeed, minSpeed);
+            }
+
+            // Function to handle game start
+            function startGame() {
+                // Hide start screen
+                startScreen.style.display = "none";
+
+                // Reset score and timer
+                score = 0;
+                scoreDisplay.textContent = score;
+                secondsLeft = 60;
+                updateTimer();
+
+                // Reset basket position
+                basketPosition = gameContainer.clientWidth / 2;
+                basket.style.left = basketPosition + "px";
+
+                // Clear any existing fruits
+                fallingFruitsContainer.innerHTML = "";
+
+                // Start the game timer
+                timer = setInterval(function() {
+                    secondsLeft--;
+                    updateTimer();
+
+                    if (secondsLeft === 0) {
+                        endGame();
+                    }
+                }, 1000);
+
+                // Start creating fruits
+                fruitSpawnInterval = setInterval(createFruit, 1500);
+            }
+
+            // Function to handle game over
+            function endGame() {
+                clearInterval(timer);
+
+                // Show game over screen with final score
+                gameOverTitle.textContent = "GG! Score is " + score;
+                gameOverScreen.style.display = "block";
+                clearInterval(fruitSpawnInterval);
+            }
+
+            // Function to update the timer display
+            function updateTimer() {
+                scoreDisplay.textContent = "Score: " + score + " | Time: " + secondsLeft + "s";
             }
 
             // Keyboard controls
@@ -156,54 +205,6 @@
                 basket.style.left = basketPosition + "px";
             }
 
-            function checkCollision() {
-                const fruits = fallingFruitsContainer.querySelectorAll(".fruit");
-
-                fruits.forEach(function(fruit) {
-                    if (isColliding(fruit, basket)) {
-                        const fruitType = fruit.classList[1];
-                        const fruitScore = calculateFruitScore(fruitType);
-
-                        score += fruitScore;
-                        scoreDisplay.textContent = score;
-
-                        fruit.remove();
-                    }
-                });
-            }
-
-            // Calculate score for each fruit type
-            function calculateFruitScore(fruitType) {
-                switch (fruitType) {
-                    case "apple":
-                        return 10;
-                    case "orange":
-                        return 20;
-                    case "banana":
-                        return 30;
-                    default:
-                        return 0;
-                }
-            }
-
-            // Check if two elements are colliding
-            function isColliding(element1, element2) {
-                const rect1 = element1.getBoundingClientRect();
-                const rect2 = element2.getBoundingClientRect();
-
-                return !(
-                    rect1.right < rect2.left ||
-                    rect1.left > rect2.right ||
-                    rect1.bottom < rect2.top ||
-                    rect1.top > rect2.bottom
-                );
-            }
-            // Update basket speed when the window is resized
-            window.addEventListener("resize", function() {
-                basketSpeed = calculateBasketSpeed();
-            });
-
-            // Create and fall fruits
             function createFruit() {
                 const fruitType = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
                 const fruit = document.createElement("div");
@@ -211,7 +212,9 @@
                 fallingFruitsContainer.appendChild(fruit);
 
                 const startPosition = Math.random() * (gameContainer.clientWidth - fruit.clientWidth);
-                fruit.style.left = startPosition + "px";
+                const maxLeftPosition = gameContainer.clientWidth - fruit.clientWidth;
+                fruit.style.left = Math.min(startPosition, maxLeftPosition) + "px";
+                fruit.style.top = "0px";
 
                 const fallInterval = setInterval(function() {
                     const bottomPosition = gameContainer.clientHeight - fruit.clientHeight;
@@ -223,17 +226,32 @@
                         fruit.remove();
                     } else {
                         fruit.style.top = nextTop + "px";
-                        checkCollision();
                     }
                 }, 50); // Adjust the interval duration as desired
+
+                // Check for basket collision
+                const checkCollisionInterval = setInterval(function() {
+                    const basketRect = basket.getBoundingClientRect();
+                    const fruitRect = fruit.getBoundingClientRect();
+
+                    if (
+                        fruitRect.left >= basketRect.left &&
+                        fruitRect.right <= basketRect.right &&
+                        fruitRect.bottom <= basketRect.bottom
+                    ) {
+                        clearInterval(checkCollisionInterval);
+                        fruit.remove();
+                        score++;
+                        scoreDisplay.textContent = "Score: " + score;
+                    }
+                }, 10);
             }
 
-            setInterval(createFruit, 1500); // Adjust the spawn interval duration as desired
+            // Start the game when clicking on the game container
+            gameContainer.addEventListener("click", startGame);
         });
 
     </script>
-
-    <!-- Add the rest of your game elements and scripts here -->
 </body>
 
 </html>
