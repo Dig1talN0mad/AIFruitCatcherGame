@@ -7,18 +7,36 @@
         .game-container {
             position: relative;
             width: 100%;
-            height: 400px;
-            background-color: #f0f0f0;
+            height: 100vh;
+            display: flex;
+            align-items: flex-end;
+            overflow: hidden;
+        }
+
+        .falling-fruits {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
 
         .basket {
             position: absolute;
-            bottom: 10px;
+            bottom: 0;
             left: 50%;
             transform: translateX(-50%);
-            width: 60px;
-            height: 40px;
-            background-color: #00aaff;
+            width: 120px;
+            /* Adjust the width as desired */
+            height: 80px;
+            /* Adjust the height as desired */
+            background-image: url('basket-pattern.jpg');
+            /* Replace 'basket-pattern.png' with your own pattern image */
+            background-size: cover;
+            border: 3px solid #000;
+            /* Adjust the border color and width as desired */
+            border-radius: 5px;
+            /* Adjust the border radius as desired */
         }
 
         .fruit {
@@ -129,6 +147,7 @@
                 scoreDisplay.textContent = score;
                 secondsLeft = 60;
                 updateTimer();
+                console.log("Started Game")
 
                 // Reset basket position
                 basketPosition = gameContainer.clientWidth / 2;
@@ -198,8 +217,10 @@
 
                 if (direction === "left") {
                     basketPosition = Math.max(basketPosition - basketSpeed, 0);
+                    console.log("Basket Moved Left");
                 } else if (direction === "right") {
                     basketPosition = Math.min(basketPosition + basketSpeed, containerWidth - basketWidth);
+                    console.log("Basket Moved Right");
                 }
 
                 basket.style.left = basketPosition + "px";
@@ -227,24 +248,58 @@
                     } else {
                         fruit.style.top = nextTop + "px";
                     }
+
+                    checkCollision(fruit); // Check collision on each step of the fruit's fall
                 }, 50); // Adjust the interval duration as desired
+            }
 
-                // Check for basket collision
-                const checkCollisionInterval = setInterval(function() {
-                    const basketRect = basket.getBoundingClientRect();
-                    const fruitRect = fruit.getBoundingClientRect();
+            function checkCollision(fruit) {
+                const fruitRect = fruit.getBoundingClientRect();
+                const basketRect = basket.getBoundingClientRect();
 
-                    if (
-                        fruitRect.left >= basketRect.left &&
-                        fruitRect.right <= basketRect.right &&
-                        fruitRect.bottom <= basketRect.bottom
-                    ) {
-                        clearInterval(checkCollisionInterval);
-                        fruit.remove();
-                        score++;
+                // Add an offset to the basket's top position to create a collision area slightly above the basket
+                const collisionOffset = 9999999999999999999999999999;
+                const basketTopWithOffset = basketRect.top + collisionOffset;
+
+                if (fruitRect.bottom >= basketTopWithOffset && isColliding(fruitRect, basketRect)) {
+                    const fruitType = getFruitType(fruit);
+
+                    if (fruitType) {
+                        const fruitScore = calculateFruitScore(fruitType);
+
+                        score += fruitScore;
                         scoreDisplay.textContent = "Score: " + score;
+
+                        fruit.remove();
+
+                        // Log collision details to the console
+                        console.log("Collision detected!");
+                        console.log("Fruit type:", fruitType);
                     }
-                }, 10);
+                }
+            }
+
+            function getFruitType(fruit) {
+                const classList = fruit.classList;
+
+                for (let i = 0; i < classList.length; i++) {
+                    const className = classList[i];
+
+                    if (className.startsWith("fruit")) {
+                        return className.substring(6);
+                    }
+                }
+
+                return null;
+            }
+
+            function isColliding(rect1, rect2) {
+                return (
+                    rect1.left < rect2.right &&
+                    rect1.right > rect2.left &&
+                    rect1.top < rect2.bottom &&
+                    rect1.bottom > rect2.top
+                );
             }
 
             // Start the game when clicking on the game container
